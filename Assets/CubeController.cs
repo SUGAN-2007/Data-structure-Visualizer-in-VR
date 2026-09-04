@@ -18,5 +18,13 @@ public class CubeController : MonoBehaviour
         {
             transform.Translate(Vector3.left * 2f * Time.deltaTime);
         }
+        if (Input.GetKey(KeyCode.UpArrow))
+        {
+            transform.Translate(Vector3.up * 2f * Time.deltaTime);
+        }
+        if (Input.GetKey(KeyCode.DownArrow))
+        {
+            transform.Translate(Vector3.down * 2f * Time.deltaTime);
+        }
     }
 }
