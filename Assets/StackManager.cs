@@ -49,4 +49,10 @@ public class StackManager : MonoBehaviour
             cubeVisuals[i].SetActive(i < stack.Count);
         }
     }
+    public void ResetStack()
+{
+    stack.Clear();
+    foreach (var cube in cubeVisuals)
+        cube.SetActive(false);
+}
 }

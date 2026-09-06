@@ -2,21 +2,14 @@ using UnityEngine;
 
 public class ClickToInteract : MonoBehaviour
 {
-    public StackManager stackManager;
-    public bool isPushButton;
-
-    private int nextValue = 6; // starts after your initial 1-5 pushes
+    public ModeController modeController;
+    public bool isFirstButton; // true = push/enqueue button, false = pop/dequeue button
 
     void OnMouseDown()
     {
-        if (isPushButton)
-        {
-            stackManager.Push(nextValue);
-            nextValue++;
-        }
+        if (isFirstButton)
+            modeController.OnActionButton1();
         else
-        {
-            stackManager.Pop();
-        }
+            modeController.OnActionButton2();
     }
 }
