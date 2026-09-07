@@ -6,6 +6,7 @@ public class QueueManager : MonoBehaviour
     [Header("Queue Settings")]
     [SerializeField] private int maxSize = 5;
     [SerializeField] private GameObject[] cubeVisuals;
+    [SerializeField] private StatusMessageDisplay statusMessage;
 
     private Queue<int> queue = new Queue<int>();
     private int nextValue = 1;
@@ -20,7 +21,13 @@ public class QueueManager : MonoBehaviour
 
     public void Enqueue()
     {
-        if (queue.Count >= maxSize) { Debug.Log("Queue Overflow!"); return; }
+        if (queue.Count >= maxSize)
+        {
+            Debug.Log("Queue Overflow!");
+            statusMessage.ShowMessage("Queue Overflow! Full.");
+            return;
+        }
+
         queue.Enqueue(nextValue);
         nextValue++;
         UpdateVisuals();
@@ -29,7 +36,13 @@ public class QueueManager : MonoBehaviour
 
     public void Dequeue()
     {
-        if (queue.Count == 0) { Debug.Log("Queue Underflow!"); return; }
+        if (queue.Count == 0)
+        {
+            Debug.Log("Queue Underflow!");
+            statusMessage.ShowMessage("Queue Underflow! Empty");
+            return;
+        }
+
         int value = queue.Dequeue();
         UpdateVisuals();
         Debug.Log("Dequeued: " + value);
@@ -41,4 +54,4 @@ public class QueueManager : MonoBehaviour
         for (int i = 0; i < cubeVisuals.Length; i++)
             cubeVisuals[i].SetActive(i < items.Length);
     }
-}
+}   

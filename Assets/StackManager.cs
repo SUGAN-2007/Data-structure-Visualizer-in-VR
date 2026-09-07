@@ -5,13 +5,13 @@ public class StackManager : MonoBehaviour
 {
     [Header("Stack Settings")]
     [SerializeField] private int maxSize = 5;
-    [SerializeField] private GameObject[] cubeVisuals; // drag your 3 (or 5) cubes here, bottom to top
+    [SerializeField] private GameObject[] cubeVisuals;
+    [SerializeField] private StatusMessageDisplay statusMessage;
 
     private Stack<int> stack = new Stack<int>();
 
     void Start()
     {
-        // hide all cubes at start
         foreach (var cube in cubeVisuals)
             cube.SetActive(false);
     }
@@ -21,6 +21,7 @@ public class StackManager : MonoBehaviour
         if (stack.Count >= maxSize)
         {
             Debug.Log("Stack Overflow! Stack is full.");
+            statusMessage.ShowMessage("Stack Overflow! Full.");
             return;
         }
 
@@ -34,6 +35,7 @@ public class StackManager : MonoBehaviour
         if (stack.Count == 0)
         {
             Debug.Log("Stack Underflow! Stack is empty.");
+            statusMessage.ShowMessage("Stack Underflow! Empty");
             return;
         }
 
@@ -49,10 +51,11 @@ public class StackManager : MonoBehaviour
             cubeVisuals[i].SetActive(i < stack.Count);
         }
     }
+
     public void ResetStack()
-{
-    stack.Clear();
-    foreach (var cube in cubeVisuals)
-        cube.SetActive(false);
-}
+    {
+        stack.Clear();
+        foreach (var cube in cubeVisuals)
+            cube.SetActive(false);
+    }
 }
