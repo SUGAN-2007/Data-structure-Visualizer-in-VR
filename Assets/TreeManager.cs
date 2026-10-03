@@ -11,28 +11,21 @@ public class TreeManager : MonoBehaviour
     }
 
     [Header("Visuals")]
-    public GameObject[] cubeVisuals;      // pool of 7 card objects
-    public LineRenderer[] connectors;     // pool of 6 connector lines
+    public GameObject[] cubeVisuals;
+    public LineRenderer[] connectors;
     public StatusMessageDisplay statusMessageDisplay;
 
     [Header("Layout")]
-    public Vector3 basePosition = new Vector3(0f, 0.3f, 0f);
-    public float xSpacing = 0.45f;   // horizontal distance between adjacent in-order positions
-    public float levelHeight = 0.6f; // vertical distance per depth level
+    public Vector3 basePosition = new Vector3(0f, 0.6f, 0f);
+    public float xSpacing = 0.45f;
+    public float levelHeight = 0.4f;
 
     [Header("Cursor")]
-    public Color normalColor = Color.white;
-    public Color cursorColor = Color.yellow;
-    public GameObject contextMenu;
-    private Color[] originalColors;
-
     public bool isActive = false;
     public int maxNodes = 10;
 
     private Node root;
-    private Node cursorNode;
 
-    // built fresh each UpdateVisuals() call
     private List<Node> displayOrder = new List<Node>();
     private Dictionary<Node, int> nodeToCardIndex = new Dictionary<Node, int>();
     private Dictionary<Node, Vector3> nodePosition = new Dictionary<Node, Vector3>();
@@ -40,12 +33,7 @@ public class TreeManager : MonoBehaviour
 
     private void Awake()
     {
-        originalColors = new Color[cubeVisuals.Length];
-        for (int i = 0; i < cubeVisuals.Length; i++)
-        {
-            var renderer = cubeVisuals[i]?.GetComponentInChildren<Renderer>();
-            if (renderer != null) originalColors[i] = renderer.material.color;
-        }
+
     }
 
     private void Start()
@@ -62,27 +50,18 @@ public class TreeManager : MonoBehaviour
     public void DeactivateMode()
     {
         isActive = false;
-        if (contextMenu != null) contextMenu.SetActive(false);
-        for (int i = 0; i < cubeVisuals.Length; i++)
-        {
-            var renderer = cubeVisuals[i]?.GetComponentInChildren<Renderer>();
-            if (renderer != null) renderer.material.color = originalColors[i];
-        }
+
     }
 
     public void ClearTree()
     {
         root = null;
-        cursorNode = null;
         UpdateVisuals();
     }
-
-    // ---------- Build from list (BST insert) ----------
 
     public void BuildFromList(List<int> values)
     {
         root = null;
-        cursorNode = null;
 
         int count = 0;
         foreach (int value in values)
@@ -96,7 +75,6 @@ public class TreeManager : MonoBehaviour
             count++;
         }
 
-        cursorNode = root;
         UpdateVisuals();
     }
 
@@ -113,73 +91,59 @@ public class TreeManager : MonoBehaviour
         {
             if (value < current.value)
             {
-                if (current.left == null)
-                {
-                    current.left = new Node { value = value, parent = current };
-                    return;
-                }
+                if (current.left == null) { current.left = new Node { value = value, parent = current }; return; }
                 current = current.left;
             }
             else
             {
-                if (current.right == null)
-                {
-                    current.right = new Node { value = value, parent = current };
-                    return;
-                }
+                if (current.right == null) { current.right = new Node { value = value, parent = current }; return; }
                 current = current.right;
             }
         }
     }
 
-    // ---------- Traversal ----------
-
-    public void GoToLeftChild()
+    public void DeleteNode(int cardIndex)
     {
-        if (cursorNode?.left != null) cursorNode = cursorNode.left;
-        UpdateVisuals();
-    }
+        if (cardIndex >= displayOrder.Count) return;
+        Node target = displayOrder[cardIndex];
 
-    public void GoToRightChild()
-    {
-        if (cursorNode?.right != null) cursorNode = cursorNode.right;
-        UpdateVisuals();
-    }
-
-    public void GoToParent()
-    {
-        if (cursorNode?.parent != null) cursorNode = cursorNode.parent;
-        UpdateVisuals();
-    }
-
-    // ---------- Delete (leaf-only, same rule as before) ----------
-
-    public void DeleteAtCursor()
-    {
-        if (cursorNode == null) { statusMessageDisplay?.ShowMessage("Nothing selected."); return; }
-
-        if (cursorNode.left != null || cursorNode.right != null)
+        if (target.left != null || target.right != null)
         {
             statusMessageDisplay?.ShowMessage("Delete children first (leaf nodes only).");
             return;
         }
 
-        Node parent = cursorNode.parent;
-        if (parent == null)
-        {
-            root = null; // deleting root with no children
-        }
-        else
-        {
-            if (parent.left == cursorNode) parent.left = null;
-            else if (parent.right == cursorNode) parent.right = null;
-        }
+        Node parent = target.parent;
+        if (parent == null) root = null;
+        else if (parent.left == target) parent.left = null;
+        else if (parent.right == target) parent.right = null;
 
-        cursorNode = parent; // move cursor up
         UpdateVisuals();
     }
 
-    // ---------- Layout + visuals ----------
+private void AssignPositions(Node node, int depth)
+{
+    if (node == null) return;
+
+    int totalNodes = CountNodes(root);
+    float scaledXSpacing = GetScaledSpacing(xSpacing, totalNodes);
+    float scaledLevelHeight = GetScaledSpacing(levelHeight, totalNodes);
+
+    AssignPositions(node.left, depth + 1);
+
+    displayOrder.Add(node);
+    float x = (inOrderCounter - (totalNodes - 1) / 2f) * scaledXSpacing;
+    float y = -depth * scaledLevelHeight;
+    nodePosition[node] = basePosition + new Vector3(x, y, 0);
+    inOrderCounter++;
+
+    AssignPositions(node.right, depth + 1);
+}
+    private int CountNodes(Node node)
+    {
+        if (node == null) return 0;
+        return 1 + CountNodes(node.left) + CountNodes(node.right);
+    }
 
     public void UpdateVisuals()
     {
@@ -191,12 +155,9 @@ public class TreeManager : MonoBehaviour
         inOrderCounter = 0;
 
         if (root != null)
-    {
-        AssignPositions(root, 0);
-
-        // re-center so root always sits at x = 0 relative to basePosition
-        if (nodePosition.ContainsKey(root))
         {
+            AssignPositions(root, 0);
+
             float rootX = nodePosition[root].x - basePosition.x;
             var keys = new List<Node>(nodePosition.Keys);
             foreach (var key in keys)
@@ -206,8 +167,7 @@ public class TreeManager : MonoBehaviour
                 nodePosition[key] = p;
             }
         }
-    }
-        // assign cards to nodes, in the order we collected them
+
         for (int i = 0; i < cubeVisuals.Length; i++)
         {
             if (cubeVisuals[i] == null) continue;
@@ -228,7 +188,7 @@ public class TreeManager : MonoBehaviour
                     label.text = text;
                 }
 
-               
+
             }
             else
             {
@@ -237,29 +197,6 @@ public class TreeManager : MonoBehaviour
         }
 
         UpdateConnectors();
-        PositionContextMenuAtCursor();
-    }
-
-    // in-order traversal: assigns x via visit order, y via depth
-private void AssignPositions(Node node, int depth)
-{
-    if (node == null) return;
-
-    AssignPositions(node.left, depth + 1);
-
-    displayOrder.Add(node);
-    float x = (inOrderCounter - (CountNodes(root) - 1) / 2f) * xSpacing;
-    float y = -depth * levelHeight;
-    nodePosition[node] = basePosition + new Vector3(x, y, 0);
-    inOrderCounter++;
-
-    AssignPositions(node.right, depth + 1);
-}
-
-    private int CountNodes(Node node)
-    {
-        if (node == null) return 0;
-        return 1 + CountNodes(node.left) + CountNodes(node.right);
     }
 
     private void UpdateConnectors()
@@ -269,7 +206,7 @@ private void AssignPositions(Node node, int depth)
         int connectorIndex = 0;
         foreach (var node in displayOrder)
         {
-            if (node.parent == null) continue; // root has no incoming connector
+            if (node.parent == null) continue;
             if (connectorIndex >= connectors.Length) break;
 
             var connector = connectors[connectorIndex];
@@ -291,39 +228,20 @@ private void AssignPositions(Node node, int depth)
             connectorIndex++;
         }
 
-        // hide any unused connectors
         for (int i = connectorIndex; i < connectors.Length; i++)
         {
             if (connectors[i] != null) connectors[i].gameObject.SetActive(false);
         }
     }
-
-    private void PositionContextMenuAtCursor()
-    {
-        if (!isActive || contextMenu == null || cursorNode == null || !nodeToCardIndex.ContainsKey(cursorNode)) return;
-        contextMenu.SetActive(true);
-        int idx = nodeToCardIndex[cursorNode];
-        contextMenu.transform.position = cubeVisuals[idx].transform.position + Vector3.up * 0.25f;
-    }
-    public void DeleteNode(int cardIndex)
+    private float GetScaledSpacing(float baseValue, int nodeCount)
 {
-    if (cardIndex >= displayOrder.Count) return;
-    Node target = displayOrder[cardIndex];
-
-    if (target.left != null || target.right != null)
-    {
-        statusMessageDisplay?.ShowMessage("Delete children first (leaf nodes only).");
-        return;
-    }
-
-    Node parent = target.parent;
-    if (parent == null)
-        root = null;
-    else if (parent.left == target)
-        parent.left = null;
-    else if (parent.right == target)
-        parent.right = null;
-
-    UpdateVisuals();
+    if (nodeCount <= 3) return baseValue;
+    float scale = 3f / nodeCount; // shrinks as more nodes exist
+    return Mathf.Max(baseValue * scale, baseValue * 0.35f); // don't shrink below 35%
+}
+private int GetMaxDepth(Node node, int depth = 0)
+{
+    if (node == null) return depth - 1;
+    return Mathf.Max(GetMaxDepth(node.left, depth + 1), GetMaxDepth(node.right, depth + 1));
 }
 }

@@ -7,7 +7,7 @@ public class ClickToInteract : MonoBehaviour
 
     void OnMouseDown()
     {
-        if (isFirstButton)
+    if (modeController != null)
             modeController.OnActionButton1();
         else
             modeController.OnActionButton2();
